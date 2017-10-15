@@ -9,6 +9,7 @@ const notify = require('gulp-notify');
 const sass = require('gulp-sass');
 const plumber = require('gulp-plumber');
 const concat = require('gulp-concat');
+const imagemin = require('gulp-imagemin');
 
 // Styles task
 gulp.task('styles', () => {
@@ -36,6 +37,32 @@ gulp.task('js', () => {
         .pipe(reload({stream:true}));
 });
 
+// move assets to public (compressed)
+gulp.task('assets-compressed', () => {
+    return gulp.src('./dev/assets/**/*')
+        .pipe(imagemin([
+        imagemin.gifsicle({interlaced: true}),
+        imagemin.jpegtran({progressive: true}),
+        imagemin.optipng({optimizationLevel: 5}),
+        imagemin.svgo({
+            plugins: [
+            {removeViewBox: true},
+            {cleanupIDs: false}
+            ]
+        })
+        ]))
+        .pipe(gulp.dest('./public/assets/'))
+        .pipe(reload({stream: true}));
+});
+
+// move assets to public (uncompressed)
+gulp.task('assets-uncompressed', () => {
+    return gulp.src('./dev/assets/**/*')
+        .pipe(gulp.dest('./public/assets/'))
+        .pipe(reload({stream: true}));
+
+});
+
 // Browsersync
 gulp.task('bs', () => {
     browserSync.init({
@@ -45,8 +72,15 @@ gulp.task('bs', () => {
     });
 });
 
-gulp.task('default', ['js','bs', 'styles'], () => {
+gulp.task('watch', function() {
     gulp.watch('dev/**/*.js',['js']);
     gulp.watch('dev/**/*.scss',['styles']);
+    gulp.watch('dev/assets/**/*', ['assets-compressed']);
+    /* uncomment if you want uncompressed */
+    // gulp.watch('dev/assets/**/*', ['assets-uncompressed']);
+    gulp.watch('*.html', reload);
     gulp.watch('./public/styles/style.css',reload);
 });
+
+//Using compressed assets by default.
+gulp.task('default', ['js','bs', 'styles','assets-compressed']);
